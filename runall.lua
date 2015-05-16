@@ -29,6 +29,7 @@ cmd:option('-momentum', 0, 'momentum (SGD only)')
 cmd:option('-t0', 1, 'start averaging at t0 (ASGD only), in nb of epochs')
 cmd:option('-maxIter', 2, 'maximum nb of iterations for CG and LBFGS')
 cmd:option('-type', 'double', 'type: double | float | cuda')
+cmd:option('-preprocess', 'YUV', 'type: none | YUV')
 cmd:text()
 opt = cmd:parse(arg or {})
 
@@ -46,9 +47,8 @@ torch.manualSeed(opt.seed)
 
 ----------------------------------------------------------------------
 print '==> executing all'
-
 dofile 'preprocess.lua'
-dofile 'model_1.lua'
+dofile 'model_2.lua'
 dofile 'loss.lua'
 dofile 'train.lua'
 dofile 'test.lua'
@@ -59,4 +59,5 @@ print '==> training!'
 while true do
    train()
    test()
+   visualize()
 end
