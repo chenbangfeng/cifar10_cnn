@@ -50,7 +50,17 @@ function test()
 		testLogger:style{['% mean class accuracy (test set)'] = '-'}
 		testLogger:plot()
 	end
-
+	
+	-- save/log current net
+	print(highest_test_accuracy)
+	print(confusion.totalValid * 100)
+	if highest_test_accuracy < (confusion.totalValid * 100) then
+		local filename = paths.concat(opt.save, 'best_test_model.net')
+		os.execute('mkdir -p ' .. sys.dirname(filename))
+		print('==> saving highest test score model to '..filename)
+		torch.save(filename, model)
+		highest_test_accuracy = (confusion.totalValid * 100)
+	end
 	-- averaged param use?
 	if average then
 		-- restore parameters

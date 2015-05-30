@@ -5,8 +5,10 @@ require 'nn'      -- provides a normalization operator
 require './lib/preprocess.lua'
 require './lib/load_model.lua'
 require './lib/visualize.lua'
---require './models/model_cnn_deep.lua' --specify model used
+--require './models/model_3.lua' --specify model used
+--require './models/model_nin.lua'
 --require './models/model_cnn_deep.lua'
+--require './models/model_deepcnet_s.lua'
 require './models/model_deepcnet.lua'
 
 ----------------------------------------------------------------------
@@ -28,18 +30,21 @@ cmd:option('-size', 'full', 'how many samples do we load: small | full')
 cmd:option('-loss', 'nll', 'type of loss function to minimize: nll | mse')
 -- training:
 cmd:option('-save', 'results', 'subdirectory to save/log experiments in')
-cmd:option('-plot', false, 'live plot')
+cmd:option('-plot', true, 'live plot')
 cmd:option('-visualize', true, 'visualize weights')
 cmd:option('-optimization', 'SGD', 'optimization method: SGD | ASGD | CG | LBFGS')
 cmd:option('-learningRate', 1e-3, 'learning rate at t=0')
 cmd:option('-batchSize', 1, 'mini-batch size (1 = pure stochastic)')
-cmd:option('-weightDecay', 0, 'weight decay (SGD only)')
-cmd:option('-momentum', 0, 'momentum (SGD only)')
+cmd:option('-weightDecay', 1e-4, 'weight decay (SGD only)')
+cmd:option('-momentum', 0.95, 'momentum (SGD only)')
 cmd:option('-t0', 1, 'start averaging at t0 (ASGD only), in nb of epochs')
 cmd:option('-maxIter', 2, 'maximum nb of iterations for CG and LBFGS')
 cmd:option('-type', 'double', 'type: double | float | cuda')
 cmd:option('-preprocess', 'YUV', 'type: none | YUV | enlarge | YUVL')
 cmd:option('-loadtype', 'load', 'type: init | load')
+cmd:option('-existing_model', 'n', 'y | n')
+cmd:option('-test_mode', 'n', 'y | n')
+cmd:option('-augmentation', 'n', 'y | n')
 cmd:text()
 opt = cmd:parse(arg or {})
 
@@ -70,7 +75,7 @@ if opt.loadtype == 'init' then
   if opt.size == 'full' then
      print '==> using regular, full training data'
      trsize = 50000
-     tesize = 2000
+     tesize = 10000
      last_batch = 4
   elseif opt.size == 'small' then
      print '==> using reduced training data, for fast experiments'
@@ -110,8 +115,16 @@ if opt.loadtype == 'init' then
 
   -- reshape data                                                                                     
   trainData.data = trainData.data:reshape(trsize,3,32,32)
-  testData.data = testData.data:reshape(tesize,3,32,32)
-
+  testData.data = testData.data:reshape(tesize,3,32,32)  
+  
+  if opt.augmentation == 'y' then
+    print('==> data augmentation')
+    data_augmentation(32, 32)
+    print(trainData)  
+    print(testData)  
+    print(trainData:size())
+    print(trsize)
+  end
   ----------------------------------------------------------------------
   -- TRANSFORM DATA
   ----------------------------------------------------------------------
@@ -135,7 +148,7 @@ elseif opt.loadtype == 'load' then
   print('==> load preprocessed data')
   if opt.size == 'full' then
     trsize = 50000
-    tesize = 2000
+    tesize = 10000
     if opt.preprocess == 'YUVL' then
       trainData = torch.load('data/trainData_48_YUV.dat')
       testData = torch.load('data/testData_48_YUV.dat')
@@ -177,25 +190,35 @@ end
 ----------------------------------------------------------------------
 -- LOAD MODEL
 ----------------------------------------------------------------------
-
-if opt.save == 'results' then
+highest_test_accuracy = 0
+if opt.existing_model == 'n' then
 	print('==> Init new model')
 	model = init_model()
 	--dofile 'loss.lua'
 else 
-	print('==> Load trained model')
-	model = load_model('results_model3_YUV/model.net')	
+	print('==> Load best test error model')
+	--model = load_model('results/results_model3_augmentation/best_test_model.net')
+  model = load_model('results/deep_cnet_small/best_test_model.net')
+  	--model = load_model('results/results_deepcnet_YUV_regular/best_test_model.net')	
 end
 
+dofile 'train.lua'
+dofile 'test.lua'
+if opt.existing_model == 'y' then
+	test()--define highest_test_accuracy
+	--print('==>load lastest training model')
+	--model = load_model('results/results_model3_YUV_regular/model.net')
+end
 ----------------------------------------------------------------------
 -- TRAINING
 ----------------------------------------------------------------------
-dofile 'train.lua'
-dofile 'test.lua'
-print '==> training!'
-print(model)
-while true do
-   train()
-   test()
+
+if opt.test_mode == 'n' then
+  print '==> training!'
+  print(model)
+  while true do
+    train()
+    test()
+  end
 end
 

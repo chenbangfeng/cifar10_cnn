@@ -1,8 +1,8 @@
 
-
+require 'cunn'
 require 'torch'   -- torch
 require 'image'   -- for image transforms
-require 'nn'      -- provides all sorts of trainable modules/layers
+--require 'nn'      -- provides all sorts of trainable modules/layers
 
 function init_model()	
 	print '==> construct model'

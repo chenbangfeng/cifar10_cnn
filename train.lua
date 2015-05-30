@@ -2,12 +2,6 @@ require 'torch'   -- torch
 require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
 
--- CUDA?
-if opt.type == 'cuda' then
-   model:cuda()
-   criterion:cuda()
-end
-
 ----------------------------------------------------------------------
 print '==> defining some tools'
 
@@ -21,7 +15,7 @@ elseif opt.loss == 'mse' then
     -- convert training labels:
     local trsize = (#trainData.labels)[1]
     noutputs = 10
-    local trlabels = torch.Tensor( trsize, noutputs )
+    local trlabels = torch.CudaTensor( trsize, noutputs )
     trlabels:fill(-1)
     for i = 1,trsize do
        trlabels[{ i,trainData.labels[i] }] = 1
@@ -30,7 +24,7 @@ elseif opt.loss == 'mse' then
 
     -- convert test labels
     local tesize = (#testData.labels)[1]
-    local telabels = torch.Tensor( tesize, noutputs )
+    local telabels = torch.CudaTensor( tesize, noutputs )
     telabels:fill(-1)
     for i = 1,tesize do
        telabels[{ i,testData.labels[i] }] = 1
@@ -40,6 +34,11 @@ elseif opt.loss == 'mse' then
 
 end
 
+-- CUDA?
+if opt.type == 'cuda' then
+   model:cuda()
+   criterion:cuda()
+end
 print '==> here is the loss function:'
 print(criterion)
 -- classes
