@@ -1,3 +1,4 @@
+require 'image'
 function rgb2yuv_transform()
 	print '==> preprocessing data'
 
@@ -26,7 +27,9 @@ function rgb2yuv_transform()
 	for i,channel in ipairs(channels) do
 	   -- normalize each channel globally:
 	   mean[i] = trainData.data[{ {},i,{},{} }]:mean()
+     print(mean[i])
 	   std[i] = trainData.data[{ {},i,{},{} }]:std()
+     print(std[i])
 	   trainData.data[{ {},i,{},{} }]:add(-mean[i])
 	   trainData.data[{ {},i,{},{} }]:div(std[i])
 	end
@@ -107,8 +110,7 @@ function enlarge_data(ori_width, ori_height, width, height, background)
 			end
 		end
 	end
-	--print(patch)
-	--print(l_trainData.data[{{1},{},{},{}}])
+	
 	for i = 1, trsize do
 		l_trainData.data[{{i},{},{},{}}] = patch	      	   
 	end
@@ -124,4 +126,100 @@ function enlarge_data(ori_width, ori_height, width, height, background)
 	l_testData.labels = testData.labels
 	trainData = l_trainData
 	testData = l_testData
+end
+
+function data_augmentation_hflip(w, h, orisize)  
+  local augmented_trainData = {
+     data = torch.Tensor(trsize + orisize, 3, w, h),
+     labels = torch.Tensor(trsize + orisize),
+     size = function() return trsize end
+  }
+  augmented_trainData.data[{ {1, trsize} }] = trainData.data
+  augmented_trainData.labels[{ {1, trsize} }] = trainData.labels
+  for i = 1, orisize do
+    augmented_trainData.data[{ {trsize+i} }] = image.hflip(trainData.data[{ {i} }])
+    augmented_trainData.labels[{ {trsize+i} }] = trainData.labels[{ {i} }]
+  end
+  trsize = trsize + orisize
+  trainData = augmented_trainData
+end
+
+function image_translate(img, x, y, bgr_color)
+  local channels = img:size()[2]
+  local w = img:size()[3]
+  local h = img:size()[4]
+  local tr_img = img
+  for i = 1, channels do
+    for j = 1, w do
+      for k = 1, h do
+        tr_img[{{}, {i}, {j}, {k}}] = bgr_color
+      end
+    end
+  end
+  if x > 0 then
+    tr_x = x+1
+    im_x = 1
+  else
+    tr_x = 1
+    im_x = torch.abs(x)+1
+  end
+  
+  if y > 0 then
+    tr_y = y+1
+    im_y = 1
+  else
+    tr_y = 1
+    im_y = torch.abs(y)+1
+  end
+  local slide_x = w - torch.abs(x) - 1
+  local slide_y = h - torch.abs(y) - 1
+  for i = 1, channels do
+    --print(tr_x, slide_x, tr_y, slide_y)
+    --print(im_x, slide_x, im_y, slide_y)
+    tr_img[{{}, {i}, {tr_x, tr_x + slide_x}, {tr_y, tr_y + slide_y}}] 
+      = img[{{}, {i}, {im_x, im_x + slide_x}, {im_y, im_y + slide_y}}]    
+  end
+  return tr_img
+end
+
+function data_augmentation_translate(w, h, p, orisize)
+  --translate x pixels horizontally, y pixels vertically
+  --p is the range of translation
+  x = torch.random(p)
+  if x > p/2 then
+    x = p/2 - x--generate random negative number
+  end
+  y = torch.random(p)
+  if y > p/2 then
+    y = p/2 - y
+  end
+  local augmented_trainData = {
+     data = torch.Tensor(trsize + orisize, 3, w, h),
+     labels = torch.Tensor(trsize + orisize),
+     size = function() return trsize end
+  }
+  augmented_trainData.data[{ {1,trsize} }] = trainData.data
+  augmented_trainData.labels[{ {1,trsize} }] = trainData.labels
+  for i = 1, orisize do
+    if i%1000 == 0 then
+      print(i)
+    end
+    augmented_trainData.data[{ {trsize+i} }] = image_translate(trainData.data[{ {i} }], x, y, 128)
+    augmented_trainData.labels[{ {trsize+i} }] = trainData.labels[{ {i} }]
+  end
+  trsize = trsize + orisize
+  trainData = augmented_trainData
+end
+
+function data_augmentation(w, h)
+  local orisize = trsize
+  print(trsize)
+  print(orisize)
+  data_augmentation_hflip(w, h, orisize)
+  print(trsize)
+  print(orisize)
+  print(trainData)
+  data_augmentation_translate(w, h, 20, orisize)
+  print(trsize)
+  print(orisize)
 end
