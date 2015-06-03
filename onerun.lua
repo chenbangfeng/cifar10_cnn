@@ -8,8 +8,7 @@ require './lib/visualize.lua'
 --require './models/model_3.lua' --specify model used
 --require './models/model_nin.lua'
 --require './models/model_cnn_deep.lua'
---require './models/model_deepcnet_s.lua'
-require './models/model_deepcnet.lua'
+require './models/model_deepcnet_s.lua'
 
 ----------------------------------------------------------------------
 -- OPTION
@@ -73,10 +72,10 @@ end
 print '==> loading dataset'
 if opt.loadtype == 'init' then
   if opt.size == 'full' then
-     print '==> using regular, full training data'
-     trsize = 50000
-     tesize = 10000
-     last_batch = 4
+    print '==> using regular, full training data'
+    trsize = 50000
+    tesize = 10000
+    last_batch = 4
   elseif opt.size == 'small' then
      print '==> using reduced training data, for fast experiments'
      trsize = 10000
@@ -116,39 +115,63 @@ if opt.loadtype == 'init' then
   -- reshape data                                                                                     
   trainData.data = trainData.data:reshape(trsize,3,32,32)
   testData.data = testData.data:reshape(tesize,3,32,32)  
-  
-  if opt.augmentation == 'y' then
-    print('==> data augmentation')
-    data_augmentation(32, 32)
-    print(trainData)  
-    print(testData)  
-    print(trainData:size())
-    print(trsize)
-  end
+    
   ----------------------------------------------------------------------
   -- TRANSFORM DATA
   ----------------------------------------------------------------------
 
   if opt.preprocess == 'YUV' then
     rgb2yuv_transform()
-    torch.save('data/trainData_32_YUV.dat', trainData)
-    torch.save('data/testData_32_YUV.dat', testData)
+    
   elseif opt.preprocess == 'enlarge' then
     enlarge_data(32, 32, 48, 48, 128)
   elseif opt.preprocess == 'YUVL' then
     enlarge_data(32, 32, 48, 48, 128)
-    rgb2yuv_transform()
+    rgb2yuv_transform()    
+  end
+  
+  
+  ----------------------------------------------------------------------
+  -- DATA AUGMENTATION
+  ----------------------------------------------------------------------
+  if opt.augmentation == 'y' then
+    print('==> data augmentation')
+    if opt.preprocess == 'YUV' then
+      data_augmentation(32, 32)
+    elseif opt.preprocess == 'enlarge' then
+      data_augmentation(48, 48)
+    elseif opt.preprocess == 'YUVL' then
+      data_augmentation(48, 48)
+    end
+    
+    print(trainData)  
+    print(testData)  
+    print(trainData:size())
+    print(trsize)
+  end
+  
+  print('Save transformed data to file')
+  if opt.preprocess == 'YUV' then
+    torch.save('data/trainData_32_YUV.dat', trainData)
+    torch.save('data/testData_32_YUV.dat', testData)
+  elseif opt.preprocess == 'enlarge' then
+    torch.save('data/trainData_48.dat', trainData)
+    torch.save('data/testData_48.dat', testData)
+  elseif opt.preprocess == 'YUVL' then
     torch.save('data/trainData_48_YUV.dat', trainData)
     torch.save('data/testData_48_YUV.dat', testData)
   end
-
-  print('Save transformed data to file')
   
 elseif opt.loadtype == 'load' then
   print('==> load preprocessed data')
   if opt.size == 'full' then
-    trsize = 50000
-    tesize = 10000
+    if opt.augmentation == 'y' then
+      trsize = 100000
+      tesize = 10000
+    else
+      trsize = 50000
+      tesize = 10000
+    end
     if opt.preprocess == 'YUVL' then
       trainData = torch.load('data/trainData_48_YUV.dat')
       testData = torch.load('data/testData_48_YUV.dat')
@@ -184,7 +207,7 @@ print '==> visualizing data'
 -- Visualization is quite easy, using itorch.image().
 
 if opt.visualize then
-   visualize_input(trainData, 100, true)--the first 100 images
+   visualize_input(trainData, 20001, 20051, true)--the first 100 images
 end
 
 ----------------------------------------------------------------------
