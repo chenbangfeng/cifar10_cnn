@@ -5,10 +5,10 @@ require 'nn'      -- provides a normalization operator
 require './lib/preprocess.lua'
 require './lib/load_model.lua'
 require './lib/visualize.lua'
---require './models/model_3.lua' --specify model used
+require './models/model_3.lua' --specify model used
 --require './models/model_nin.lua'
 --require './models/model_cnn_deep.lua'
-require './models/model_deepcnet_s.lua'
+--require './models/model_deepcnet_s.lua'
 
 ----------------------------------------------------------------------
 -- OPTION
@@ -120,14 +120,9 @@ if opt.loadtype == 'init' then
   -- TRANSFORM DATA
   ----------------------------------------------------------------------
 
-  if opt.preprocess == 'YUV' then
-    rgb2yuv_transform()
-    
-  elseif opt.preprocess == 'enlarge' then
-    enlarge_data(32, 32, 48, 48, 128)
-  elseif opt.preprocess == 'YUVL' then
-    enlarge_data(32, 32, 48, 48, 128)
-    rgb2yuv_transform()    
+  if (opt.preprocess == 'enlarge') 
+    or (opt.preprocess == 'YUVL') then
+    enlarge_data(32, 32, 48, 48, 128)  
   end
   
   
@@ -150,8 +145,17 @@ if opt.loadtype == 'init' then
     print(trsize)
   end
   
+  if (opt.preprocess == 'YUV') or (opt.preprocess == 'YUVL') then      
+      rgb2yuv_transform()
+  end
+  ----------------------------------------------------------------------
+  -- SAVE DATA
+  ----------------------------------------------------------------------
   print('Save transformed data to file')
-  if opt.preprocess == 'YUV' then
+  if opt.augmentation == 'y' then
+    torch.save('data/trainData_aug.dat', trainData)
+    torch.save('data/testData_aug.dat', testData)
+  elseif opt.preprocess == 'YUV' then
     torch.save('data/trainData_32_YUV.dat', trainData)
     torch.save('data/testData_32_YUV.dat', testData)
   elseif opt.preprocess == 'enlarge' then
@@ -159,7 +163,10 @@ if opt.loadtype == 'init' then
     torch.save('data/testData_48.dat', testData)
   elseif opt.preprocess == 'YUVL' then
     torch.save('data/trainData_48_YUV.dat', trainData)
-    torch.save('data/testData_48_YUV.dat', testData)
+    torch.save('data/testData_48_YUV.dat', testData)  
+  else
+    torch.save('data/trainData_ori.dat', trainData)
+    torch.save('data/testData_ori.dat', testData)  
   end
   
 elseif opt.loadtype == 'load' then
@@ -203,8 +210,6 @@ print()
 -- VISUALIZE DATA
 ----------------------------------------------------------------------
 print '==> visualizing data'
-
--- Visualization is quite easy, using itorch.image().
 
 if opt.visualize then
    visualize_input(trainData, 20001, 20051, true)--the first 100 images
