@@ -1,14 +1,15 @@
 require 'torch'
 require 'image'
 require 'nn'
+--dofile 'load_model.lua'
 
 
-function visualize_input(trainData, num, sep_channel)
+function visualize_input(trainData, first, last, sep_channel)
 	if itorch then
-		samples_y = trainData.data[{ {1, num}, 1 }]
-		samples_u = trainData.data[{ {1, num}, 2 }]
-		samples_v = trainData.data[{ {1, num}, 3 }]
-		samples = trainData.data[{ {1, num} }]
+		samples_y = trainData.data[{ {first, last}, 1 }]
+		samples_u = trainData.data[{ {first, last}, 2 }]
+		samples_v = trainData.data[{ {first, last}, 3 }]
+		samples = trainData.data[{ {first, last} }]
 		if sep_channel then
 			print('Images in first channel')
 			itorch.image(samples_y)
@@ -42,3 +43,9 @@ function visualize_kernels(model, layer, filtsize)
 		print("For visualization, run this script in an itorch notebook")
 	end
 end
+
+function visualize_saved_model(filename, layer, filtsize)
+  model = load_model(filename)
+  visualize_kernels(model, layer, filtsize)
+end
+

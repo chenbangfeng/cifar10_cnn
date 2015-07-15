@@ -15,7 +15,7 @@ elseif opt.loss == 'mse' then
     -- convert training labels:
     local trsize = (#trainData.labels)[1]
     noutputs = 10
-    local trlabels = torch.CudaTensor( trsize, noutputs )
+    local trlabels = torch.Tensor( trsize, noutputs )
     trlabels:fill(-1)
     for i = 1,trsize do
        trlabels[{ i,trainData.labels[i] }] = 1
@@ -24,7 +24,7 @@ elseif opt.loss == 'mse' then
 
     -- convert test labels
     local tesize = (#testData.labels)[1]
-    local telabels = torch.CudaTensor( tesize, noutputs )
+    local telabels = torch.Tensor( tesize, noutputs )
     telabels:fill(-1)
     for i = 1,tesize do
        telabels[{ i,testData.labels[i] }] = 1
@@ -39,6 +39,7 @@ if opt.type == 'cuda' then
    model:cuda()
    criterion:cuda()
 end
+
 print '==> here is the loss function:'
 print(criterion)
 -- classes
@@ -155,7 +156,7 @@ function train()
 				-- estimate df/dW
 				local df_do = criterion:backward(output, targets[i])
 				model:backward(inputs[i], df_do)
-
+  
 				-- update confusion
 				confusion:add(output, targets[i])
 			end
